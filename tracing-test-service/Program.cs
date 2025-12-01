@@ -12,7 +12,7 @@ app.MapGet("/", ([FromServices] ActivitySource activitySource, [FromServices] So
 {
     using var activity = activitySource.StartActivity("HelloWorld");
     worker.DoSomeWork();
-    activity.AddTag("это тег", "а тут значение тега");
+    activity?.AddTag("это тег", "а тут значение тега");
     return "Hello World!";
 });
 
