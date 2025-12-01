@@ -32,4 +32,21 @@ public static class OpenTelemetryExtensions
                 .AddSource("tracing_test_service")
                 .AddHttpClientInstrumentation();
         });
+
+
+    private const string ServiceName = "MyTracingService";
+
+    public static void AddTelemetry(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddSingleton(new ActivitySource(ServiceName));
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracerProviderBuilder =>
+            {
+                tracerProviderBuilder
+                    .AddAspNetCoreInstrumentation()
+                    .AddSource(ServiceName)
+                    .AddConsoleExporter()
+                    .AddOtlpExporter();
+            });
+    }
 }
