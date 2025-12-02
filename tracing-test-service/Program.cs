@@ -16,7 +16,7 @@ var app = builder.Build();
 app.MapGet("/", ([FromServices] ActivitySource activitySource, [FromServices] SomeWorker worker) =>
 {
     using var activity = activitySource.StartActivity("HelloWorld");
-    
+
     activity?.SetTag("hello", "world");
     activity?.AddTag("имя тега", "значение тега");
     worker.DoSomeWork();
