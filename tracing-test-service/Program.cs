@@ -8,6 +8,12 @@ builder.Services.AddSingleton<SomeWorker>();
 
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", ([FromServices] ActivitySource activitySource, [FromServices] SomeWorker worker) =>
+{
+    using var activity = activitySource.StartActivity("HelloWorld");
+    activity.AddTag("StasIvanaev", "Molodez");
+    worker.DoSomeWork();
+    return "Hello World!";
+});
 
 app.Run();
