@@ -35,7 +35,7 @@ jaegertracing/jaeger:2.3.0 \
 docker run --rm --name jaeger -p 5778:5778 -p 16686:16686 -p 4317:4317 -p 4318:4318 -p 14250:14250 -p 14268:14268 -p 9411:9411 jaegertracing/jaeger:2.3.0 --set receivers.otlp.protocols.http.endpoint=0.0.0.0:4318 --set receivers.otlp.protocols.grpc.endpoint=0.0.0.0:4317
 ```
 
-Теперь открой в браузере http://localhost:16686, открой приложение, выполни несколько запросов и нажми на кнопку `Search`. Посмотри, как выглядят трассировки в UI, поизучай данные, теги. Найди `CorrelationId`.
+Теперь открой в браузере http://localhost:16686, открой приложение, выполни несколько запросов и нажми на кнопку `Search`. Посмотри, как выглядят трассировки в UI, поизучай данные, теги. Найди `CorrelationId` или `TraceId`.
 
 ## 3. Кастомные спаны и теги
 В .NET главный способ использовать кастомные спаны и теги — `Activity`, создаваемый с помощью `ActivitySource`. Правило хорошего тона - использовать один инстанс `ActivitySource` на приложение (но иногда может понадобиться несколько таких, для этого приходится писать обёртки). Есть ещё `ITracingProvider`, но с ним всё сложнее. В обычном случае всё просто: создаём `ActivitySource` через `new ActivitySource("MySource")` (опционально можно указать версию), создаём `Activity` через `using (var activity = source.StartActivity())` (или `using var`), оборачиваем в этот блок нужный нам кусок кода, опционально добавляем теги через `activity?.SetTag("key", "value")` (обрати внимание - `activity` может быть `null`!), можно ещё выполнить `activity?.Stop()`... но не с OpenTelemetry SDK. Причина на скрине (подробнее [здесь](https://github.com/open-telemetry/opentelemetry-dotnet/tree/main/src/OpenTelemetry.Api#introduction-to-opentelemetry-net-tracing-api)).
