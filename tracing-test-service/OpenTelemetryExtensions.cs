@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -8,6 +9,8 @@ namespace tracing_test_service;
 
 public static class OpenTelemetryExtensions
 {
+    public const string SourceName = "tracing_test_service";
+
     public static OpenTelemetryBuilder AddOtelTracing(this OpenTelemetryBuilder openTelemetryBuilder) => openTelemetryBuilder
         .WithTracing(tracing =>
         {
@@ -29,7 +32,23 @@ public static class OpenTelemetryExtensions
                         autoGenerateServiceInstanceId: true);
                     rb.AddEnvironmentVariableDetector();
                 })
-                .AddSource("tracing_test_service")
+                .AddSource(SourceName)
                 .AddHttpClientInstrumentation();
         });
+
+    public static IOpenTelemetryBuilder AddOtelAll(this IOpenTelemetryBuilder builder) => builder
+        .ConfigureResource(rb => rb.AddService(
+            serviceName: "WeatherApp10.11",
+            serviceVersion: typeof(Program).Assembly.GetName().Version!.ToString(),
+            autoGenerateServiceInstanceId: true))
+        .WithTracing(t => t
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddSource(SourceName))
+        .WithMetrics(m => m
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddMeter(SourceName))
+        .WithLogging()
+        .UseOtlpExporter();
 }
