@@ -1,14 +1,22 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry.Trace;
 using tracing_test_service;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddOpenTelemetry().AddOtelTracing();
+builder.Services.AddSingleton<ActivitySource>(_ => new ActivitySource("ikebanana"));
+builder.Services.AddSingleton<SomeWorker>();
+
 builder.Services
     .AddOpenTelemetry()
-    .AddOtelTracing()
-    .WithTracing();
-
-builder.Services.AddSingleton<SomeWorker>();
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddSource("ikebanana")
+            .AddOtlpExporter();
+    });
 
 var app = builder.Build();
 
