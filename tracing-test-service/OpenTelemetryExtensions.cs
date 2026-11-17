@@ -30,7 +30,6 @@ public static class OpenTelemetryExtensions
                     rb.AddEnvironmentVariableDetector();
                 })
                 .AddSource("tracing_test_service")
-                .AddSource("name")
                 .AddHttpClientInstrumentation();
         });
 }
