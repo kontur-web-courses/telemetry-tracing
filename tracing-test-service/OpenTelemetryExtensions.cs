@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using OpenTelemetry;
-using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -8,28 +8,57 @@ namespace tracing_test_service;
 
 public static class OpenTelemetryExtensions
 {
-    public static OpenTelemetryBuilder AddOtelTracing(this OpenTelemetryBuilder openTelemetryBuilder) => openTelemetryBuilder
+    public const string ServiceName = "ABOBA_3_SPIDOMETER_3.0";
+
+    public static void AddOtelTelemetry(this WebApplicationBuilder builder)
+    {
+        var version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0";
+
+        void ConfigureResource(ResourceBuilder rb)
+        {
+            rb.AddService(
+            serviceName: ServiceName,
+            serviceVersion: version,
+            autoGenerateServiceInstanceId: true);
+            rb.AddEnvironmentVariableDetector();
+        }
+
+        builder.Services
+        .AddOpenTelemetry()
+        .ConfigureResource(ConfigureResource)
         .WithTracing(tracing =>
         {
             tracing
                 .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddSource(ServiceName)
                 .AddConsoleExporter()
                 .AddOtlpExporter(otlp =>
                 {
-                    otlp.Endpoint = new Uri("http://localhost:4318/v1/traces");
-                    otlp.Protocol = OtlpExportProtocol.HttpProtobuf;
                     otlp.ExportProcessorType = ExportProcessorType.Simple;
-                })
-                .ConfigureResource(rb =>
-                {
-                    var name = typeof(Program).Assembly.GetName();
-                    rb.AddService(
-                        serviceName: "ke-conf-otel-mc-example-service",
-                        serviceVersion: name.Version!.ToString(),
-                        autoGenerateServiceInstanceId: true);
-                    rb.AddEnvironmentVariableDetector();
-                })
-                .AddSource("tracing_test_service")
-                .AddHttpClientInstrumentation();
+                });
+        })
+        .WithMetrics(metrics =>
+        {
+            metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddMeter(ServiceName)
+                .AddConsoleExporter()
+                .AddOtlpExporter();
         });
+
+        var logResource = ResourceBuilder.CreateDefault();
+        ConfigureResource(logResource);
+
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
+            logging.SetResourceBuilder(logResource);
+            logging.IncludeFormattedMessage = true;
+            logging.IncludeScopes = true;
+            logging.ParseStateValues = true;
+            logging.AddConsoleExporter();
+            logging.AddOtlpExporter();
+        });
+    }
 }
