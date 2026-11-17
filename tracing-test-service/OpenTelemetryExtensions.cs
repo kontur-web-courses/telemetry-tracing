@@ -14,12 +14,6 @@ public static class OpenTelemetryExtensions
             tracing
                 .AddAspNetCoreInstrumentation()
                 .AddConsoleExporter()
-                .AddOtlpExporter(otlp =>
-                {
-                    otlp.Endpoint = new Uri("http://localhost:4318/v1/traces");
-                    otlp.Protocol = OtlpExportProtocol.HttpProtobuf;
-                    otlp.ExportProcessorType = ExportProcessorType.Simple;
-                })
                 .ConfigureResource(rb =>
                 {
                     var name = typeof(Program).Assembly.GetName();
