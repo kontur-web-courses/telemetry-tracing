@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Resources;
