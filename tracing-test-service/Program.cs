@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using tracing_test_service;
 
 var builder = WebApplication.CreateBuilder(args);
