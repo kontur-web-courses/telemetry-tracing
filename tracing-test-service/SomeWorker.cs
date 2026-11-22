@@ -6,4 +6,6 @@ public class SomeWorker
     {
         Console.WriteLine("Doing some work");
     }
+
+    public void SomeWork() => DoSomeWork();
 }
