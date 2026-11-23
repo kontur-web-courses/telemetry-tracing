@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -8,28 +9,26 @@ namespace tracing_test_service;
 
 public static class OpenTelemetryExtensions
 {
-    public static OpenTelemetryBuilder AddOtelTracing(this OpenTelemetryBuilder openTelemetryBuilder) => openTelemetryBuilder
-        .WithTracing(tracing =>
-        {
-            tracing
+    public const string SourceName = "tracing_testing_serivce";
+
+    public static IOpenTelemetryBuilder AddTelemetry(this OpenTelemetryBuilder openTelemetryBuilder)
+    {
+        openTelemetryBuilder.Services.AddSingleton(new ActivitySource(SourceName));
+        
+        return openTelemetryBuilder
+            .ConfigureResource(rb => rb.AddService(
+                serviceName: "TestService123",
+                serviceVersion: typeof(Program).Assembly.GetName().Version!.ToString(),
+                autoGenerateServiceInstanceId: true))
+            .WithTracing(t => t
                 .AddAspNetCoreInstrumentation()
-                .AddConsoleExporter()
-                .AddOtlpExporter(otlp =>
-                {
-                    otlp.Endpoint = new Uri("http://localhost:4318/v1/traces");
-                    otlp.Protocol = OtlpExportProtocol.HttpProtobuf;
-                    otlp.ExportProcessorType = ExportProcessorType.Simple;
-                })
-                .ConfigureResource(rb =>
-                {
-                    var name = typeof(Program).Assembly.GetName();
-                    rb.AddService(
-                        serviceName: "ke-conf-otel-mc-example-service",
-                        serviceVersion: name.Version!.ToString(),
-                        autoGenerateServiceInstanceId: true);
-                    rb.AddEnvironmentVariableDetector();
-                })
-                .AddSource("tracing_test_service")
-                .AddHttpClientInstrumentation();
-        });
+                .AddHttpClientInstrumentation()
+                .AddSource(SourceName))
+            .WithMetrics(m => m
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddMeter(SourceName))
+            .WithLogging()
+            .UseOtlpExporter();
+    }
 }
