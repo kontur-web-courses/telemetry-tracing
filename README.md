@@ -55,3 +55,35 @@ docker run --rm --name jaeger -p 5778:5778 -p 16686:16686 -p 4317:4317 -p 4318:4
 
 ### 3.2. Интеграция разных видом телеметрии
 А теперь собери все три вида телеметрии вместе. Добавь нужные настройки, дополни обработчик запроса отправкой метрики и логированием, потом сделай несколько запросов и попробуй посмотреть логи. Поищи там traceId и попробуй по нему же найти трассировки.
+
+## 4. Что сделано в этом репозитории
+
+- `ActivitySource` и `Meter` вынесены в [`Telemetry.cs`](tracing-test-service/Telemetry.cs) и зарегистрированы в DI, поэтому в обработчике они доступны через `[FromServices]`.
+- В обработчике `GET /` ([`Program.cs`](tracing-test-service/Program.cs)) создаётся кастомный спан `HelloWorld` с тегами `custom.tag`, `endpoint` и `correlation.id` (TraceId), пишется метрика `tracing_test_service.requests` и лог с `TraceId`/`SpanId`.
+- [`OpenTelemetryExtensions.AddOtel`](tracing-test-service/OpenTelemetryExtensions.cs) подключает все три вида телеметрии (`WithTracing`, `WithMetrics`, `WithLogging`) и настраивает OTLP-экспортёры из конфигурации.
+
+Настройки находятся в секции `OpenTelemetry` в [`appsettings.json`](tracing-test-service/appsettings.json):
+
+| Ключ | Назначение |
+| --- | --- |
+| `ConsoleExporter` | печатать спаны/метрики/логи в консоль приложения |
+| `Jaeger:Enabled` | отправлять трассировки в локальный Jaeger |
+| `Jaeger:BaseUrl` | адрес OTLP-приёмника Jaeger (по умолчанию `http://localhost:4318`) |
+| `Jaeger:Signals` | какие сигналы отправлять в Jaeger (по умолчанию только `traces`) |
+| `Pipe:Enabled` | отправлять телеметрию в общую «трубу» |
+| `Pipe:BaseUrl` | адрес «трубы» |
+| `Pipe:Signals` | какие сигналы отправлять в «трубу» (`traces`, `metrics`, `logs`) |
+| `Pipe:Headers` | дополнительные заголовки, например `{ "Authorization": "Bearer ..." }` |
+
+Чтобы сдать телеметрию в общую трубу, выставь `OpenTelemetry:Pipe:Enabled` в `true` (при необходимости поправь `BaseUrl` и `Headers`). Для локальной проверки достаточно `Jaeger:Enabled=true` и запущенного контейнера Jaeger из раздела 2.
+
+docker run -d --rm --name jaeger -p 5778:5778 -p 16686:16686 -p 4317:4317 -p 4318:4318 -p 14250:14250 -p 14268:14268 -p 9411:9411 jaegertracing/jaeger:2.3.0 --set receivers.otlp.protocols.http.endpoint=0.0.0.0:4318 --set receivers.otlp.protocols.grpc.endpoint=0.0.0.0:4317
+
+
+dotnet run --project tracing-test-service
+
+
+1..3 | ForEach-Object { (Invoke-WebRequest 'http://localhost:5122/' -UseBasicParsing).StatusCode }
+
+Invoke-RestMethod 'http://localhost:16686/api/services'
+Invoke-RestMethod 'http://localhost:16686/api/traces?service=ke-conf-otel-mc-example-service&limit=5'
